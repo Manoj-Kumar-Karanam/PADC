@@ -45,7 +45,7 @@ int main() {
     for(auto &pair : mp) {
         sum += pair.first;
     }
-    
+    cout << "test";
     cout << "\nSum of all the prime pairs = " << sum;
     cout << "\nExecution time: " << e - s << " seconds";
     return 0;
