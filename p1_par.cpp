@@ -3,7 +3,6 @@
 #include <limits>
 #include <omp.h>
 
-
 using namespace std;
 
 struct Edge {
@@ -34,17 +33,36 @@ void bellmanFord(Graph* graph, int src) {
     vector<int> dist(V, numeric_limits<int>::max());
     dist[src] = 0;
 
-   
     for (int i = 0; i < V - 1; ++i) {
-        for (const auto& edge : graph->edge) {
-            if (dist[edge.src] != numeric_limits<int>::max() && 
-                dist[edge.src] + edge.wt < dist[edge.dest]) {
-                dist[edge.dest] = dist[edge.src] + edge.wt;
-            } 
+        vector<int> tempDist = dist; // Temporary distances for this iteration
+
+        #pragma omp parallel for
+        for (int j = 0; j < graph->E; ++j) {
+            const Edge& edge = graph->edge[j];
+            int thread_id = omp_get_thread_num(); // Get the thread ID
+            bool relaxed = false;
+
+            if (tempDist[edge.src] != numeric_limits<int>::max() && 
+                tempDist[edge.src] + edge.wt < tempDist[edge.dest]) {
+                tempDist[edge.dest] = tempDist[edge.src] + edge.wt;
+                relaxed = true;
+            }
+
+            // Print which thread relaxed which edge
+            if (relaxed) {
+                #pragma omp critical
+                {
+                    cout << "Thread " << thread_id << " relaxed edge (" 
+                         << edge.src << " -> " << edge.dest << ") with weight " 
+                         << edge.wt << endl;
+                }
+            }
         }
+
+        dist = tempDist; // Update the original distance vector
     }
 
-    
+    // Check for negative-weight cycles
     for (const auto& edge : graph->edge) {
         if (dist[edge.src] != numeric_limits<int>::max() && 
             dist[edge.src] + edge.wt < dist[edge.dest]) {
